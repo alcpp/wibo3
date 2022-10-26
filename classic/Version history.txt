@@ -1,0 +1,322 @@
+version 3.15 (Feb 13, 2016)
+Login procedure was updated to suit MediaWiki 1.27.
+Page.GetLinks() method has been fixed. [bugs/105]
+Site.ParseTemplate() and Site.FormatTemplate() methods have been moved to Page class and have been made static.
+Page.RemoveNsPrefix() method has been removed, use Site.RemoveNsPrefix() method instead.
+
+version 3.14 (Mar 7, 2015)
+Bugfix (#103, FillFromRecentChanges() ignores limit parameter).
+Relative links support has been added to FillFromPageLinks() method (Feature request #33).
+Page.GetWikidataItem() method has been added (Feature requests #34, #35).
+Prevention of server overload has been improved.
+Documentation has been updated.
+
+version 3.13 (Feb 12, 2015)
+Bugfix (#102, Uri.EscapeDataString() has string size limit).
+
+version 3.12 (Jan 31, 2015)
+Edit conflict detection has been fixed.
+Page.GetWikidataLinks() function has been added.
+Page.RenameTo(newTitle, reason, renameTalkPage, renameSubPages) method overload has been added.
+PageList.FillFromAllPages(firstPageTitle, neededNSpace, acceptRedirects, limit, lastPageTitle) method overload has been added.
+Page.Save() method has been refined.
+Uri.EscapeDataString() function was introduced for Mono compatibility.
+DTD processing for .NET 4.0+ has been enhanced.
+Documentation has been updated.
+
+version 3.11 (Sep 20, 2014)
+Edit conflict detection has been fixed.
+Page watching and unwatching has been fixed.
+Page metadata loading via API has been implemented.
+Page saving and image uploading retrial has been fixed.
+Interface messages have been revised by Robert Morley.
+
+version 3.10 (Jan 14, 2014)
+Page renaming and deletion has been fixed.
+Page watching, unwatching and protection has been fixed.
+Parsing and modification of templates has been fixed.
+Cache system has been advanced, cache directory is now changable.
+
+version 3.00 (Oct 20, 2013)
+Major update. Framework has been extensively refactored.
+License was switched from MIT (X11) license to GNU GPLv2.
+.NET Framework requirement was shifted to 3.5+ (Mono 1.9+).
+Unit testing script was created.
+
+
+========================================
+
+
+version 2.103 (2013-09-10)
+Update that is intended to suit new MediaWiki releases which use HTTPS.
+
+version 2.102 (2013-04-21)
+Important update for Wikia.
+Some bugfixes has been done.
+
+version 2.101 (2013-09-10)
+Function FillFromTransclusionsOfPage() has been added.
+Watch() and Unwatch() functions were updated.
+Changes were made to accommodate to broken MediaWiki bot interface versioning system.
+
+version 2.100 (2012-04-25)
+Minor updates.
+
+version 2.99 (2012-03-26)
+Search functions were updated.
+File uploading process was updated.
+DisableSilenceMode() function was added.
+Documantaion was recompiled.
+
+version 2.98 (2012-01-18)
+A LoginViaApi() method was added.
+Updates for MediaWiki 1.18 were applied.
+A specific update for Wikia was applied.
+A workaround was added for a .NET bug which removed trailing dots from URIs.
+Several minor other changes were made.
+
+version 2.97 (2011-03-02)
+LoadEx2() function was fixed.
+FillFromPageHistory() function was fixed.
+FillFromPageHistoryEx() function was fixed.
+
+version 2.96 (2010-10-04)
+Fixes for Mono bug 636219 (https://bugzilla.novell.com/show_bug.cgi?id=636219)
+ParsePageXML() function updated.
+
+version 2.95 (2010-09-17)
+GetFirstTemplateParameter() function was added.
+StripContent() function was added.
+Function FillFromCustomBotQueryList() was updated.
+Bug in GetLinks() function was fixed.
+Save() function is now sensitive to "nobots" and "bots" templates in page's text,
+	if text is available (pre-loaded by Load() function).
+See http://en.wikipedia.org/wiki/Template:Bots for details.
+
+version 2.94 (2010-07-03)
+Local DTDs cache was implemented according to W3C requirement.
+UploadImage() function was updated.
+FillFromPagesUsingImage() function was updated.
+FillFromPageHistory() function was updated.
+GetMediaWikiMessages() function was updated.
+GetMediaWikiMessage() function was added.
+GetAllCategories() function was made less sensitive to syntax errors.
+Interwiki links sorting order lists were updated.
+
+version 2.92 (2010-05-18)
+Portuguese (Portugal) translation by Hamilton Abreu was added.
+Minor bugfixes were applied.
+
+version 2.91
+Minor bugfixes.
+
+version 2.9 (2010-04-10)
+Critical update of Login() function.
+New functions were added for template processing: 
+	Site.ParseTemplate()
+	Page.GetTemplateParameter()
+	Page.SetTemplateParameter()
+Documentation was updated.
+
+version 2.81 (2010-02-17)
+Minor bugfixes.
+
+version 2.8 (2010-02-01)
+SourceForge authentication support has been added.
+Minor bugfixes.
+
+version 2.73 (2010-01-31)
+Minor bug fixes.
+Cumulative update.
+
+version 2.72 (2009-08-24)
+Cumulative update.
+GetAllCategories() function was updated.
+FillFromLinksToPage() function was updated.
+GetTitle() function was updated.
+UploadImage() function was fixed.
+
+version 2.71 (2009-07-22)
+Minor improvements and bugfixes.
+
+version 2.7 (2009-05-27)
+Several minor new features and major bugfixes.
+Documentation update.
+
+version 2.65 (2009-05-18)
+Bugfix in DownloadImage() function.
+
+version 2.64 (2009-04-25)
+Critical bugfix in Save() function and edit conflict detection.
+
+version 2.63 (2009-04-11)
+DotNetWikiBot is now bundled with GUI utility for batch upload of files to wiki sites.
+Some minor bugfixes were also applied.
+
+version 2.62 (2009-04-03)
+Major performance improvements and major bug fixes.
+GetEditSessionDataEx() internal function was added.
+	Now this function queries tokens for editing using bot interface thus saving traffic.
+Fixes for bug 2725385 were applied.
+
+version 2.61 (2009-04-01)
+Minor bugfixes.
+
+version 2.6 (2009-03-03)
+Localization file has been added.
+Documentation was updated.
+Retry on error has been implemented.
+Two other updates were applied.
+
+version 2.55 (2009-02-18)
+Additional fix to adjust to new version of Squid proxy server on WikiMedia sites.
+
+version 2.54 (2009-02-16)
+Important update to adjust to new version of Squid proxy server on WikiMedia sites.
+(Default HTTP Expect100Continue header that caused HTTP error 417 has been disabled.)
+
+version 2.53 (2009-02-07)
+Important updates and some bug fixes.
+
+version 2.52 (2009-01-04)
+Critical fix to adjust to the recent changes in MediaWiki software.
+
+version 2.51 (2008-11-20)
+Disabling bug in regular expression was fixed.
+
+version 2.5 (2008-11-14)
+Support for LDAP authentication was added.
+Major bug fixes.
+
+version 2.4 (2008-10-10)
+Getting page title by revision ID (oldid) now allowed (2 constructors and
+	GetTitle() function added to "Page" class).
+Silence mode was added ("silenceMode" variable in "Bot" class).
+Ability to log output to file has been added ("logFile" variable in "Bot" class).
+Mono compatibility has been improved.
+
+version 2.32 (2008-09-28)
+Internationalization update.
+Few minor bugfixes.
+
+version 2.31 (2008-09-02)
+Internationalization updates and a few minor fixes.
+
+version 2.3 (2008-05-28)
+A few important updates.
+"CategoryTree" MediaWiki extension support has been added.
+
+version 2.21 (2008-04-15)
+Small internationalization update.
+A bug in "api.php" interface recognition has been fixed.
+Additional overload of AddInterWikiLinks function was added.
+
+version 2.2 (2008-04-11)
+Several functions were rewritten and optimized.
+Several minor errors in documentation were corrected, examples were added.
+Backward compatibility was improved.
+
+version 2.11 (2008-03-24)
+A small bugfix.
+In Load() function (line 708) the "Not Found" HTTP error was mistakenly coded 502 instead of 404.
+Because of this, every time bot requested non-existent wiki page, the exception had been raised.
+
+version 2.1 (2008-03-22)
+Several updates.
+Several minor improvements.
+Function FillFromPageHistoryEx() was added.
+
+version 2.00 (2008-01-05)
+Function UndoLastEdits() was added.
+Function ConvertHtmlMarkupToWikiMarkup() was added.
+Function SortInterWikiLinks() was added.
+Several minor improvements.
+Some bugs has been fixed.
+
+version 1.91 (not released)
+Function UndoLastEdits() was added.
+Redirections detection was fixed.
+
+version 1.9 (2007-09-26)
+Function GetTemplatesWithParams() was added.
+Function ConvertHtmlTablesToWikiTables() was added.
+Some other auxiliary functions were added.
+Some minor bugs has been fixed.
+
+version 1.82 (2007-08-22)
+Bug 1775048 (FillFromCategoryTree functions group didn't work) was fixed.
+
+version 1.81 (2007-08-07)
+A small hot fix in FillFromCategory functions group.
+
+version 1.8 (2007-08-06)
+Basic MediaWiki API extension ("api.php") support has been added (FillFromCustomBotQueryList() function).
+FillFromAllPageLinks() function has been fixed.
+Google search results parsing has been updated in FillFromGoogleSearchResults() function.
+Image upload was improved.
+Few other minor enhancements.
+
+version 1.73 (2007-07-17)
+Mono compatibility has been enhanced.
+Way of loading MediaWiki messages has been changed.
+Several minor improvements.
+
+version 1.72 (2007-07-01)
+A small fix to accommodate to the recent changes in MediaWiki software.
+
+version 1.71 (2007-06-23)
+Problem with initial MediaWiki messages loading was fixed.
+Local redirection tags were corrected.
+Several minor bugs were fixed.
+
+version 1.7 (2007-06-09)
+Pages can now be edited in MS Word on the fly.
+Documentation has been recompiled with Sandcastle.
+Several minor functions were added. Some bugs were fixed.
+
+Bugs fixed
+  Bug 1725672 (not matching multiline templates) was fixed.
+  Bug 1727652 (AddTemplate failure if no interwiki found) was fixed.
+  Bug 1728453 (GetCategories doesn't return implicit categories) was fixed.
+  Bug 1729589 (FillFromAllPages malfunctioning) was fixed.
+  And some other bugs.
+
+version 1.61 (2007-05-22, hotfix)
+Bug 1722538 (saving and deleting pages with ampersand in title) was fixed.
+Main source converted to UTF-8 to ensure local redirect tags support.
+
+version 1.6 (2007-05-21)
+Assembly strong-named. COM compliance has been improved.
+Bug 1704452 (ampersand in page titles) was fixed.
+Bug 1618509 (wpMinoredit in page text) was fixed.
+
+version 1.5 (2007-05-07)
+Access to page history and previous page revisions has been implemented.
+Page protection and unprotection functions were added.
+Page watching and unwatching has been implemented.
+
+version 1.4 (2007-02-21)
+Functions for smooth pages saving were added, collecting data from whole
+category trees enabled, local redirect tags support added.
+Few other minor improvements. Many bugs fixed.
+
+version 1.3 (2006-11-04)
+Many PageList filling functions were added, cache was implemented,
+image uploading was enabled, MediaWiki messages dump was implemented,
+XML dump loading was enabled. Few other minor improvements.
+
+version 1.2 (2006-08-12)
+Page deletion function has been added,
+"query.php" interface support has been enhanced.
+
+v1.12 (not released)
+Minor error control in renaming function was added.
+
+v1.11 (not released)
+Images inside <gallery> tag processing was added,
+basic support of links to subsections inside wikilinks ([[...#...]]) was added.
+
+version 1.1 (2006-06-29)
+Many parsing and page modification functions were added, page renaming
+feature was added, basic "query.php" support was added, old URL syntax support
+was added, edit conflict detection was added, error control enhanced.

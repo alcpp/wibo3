@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3. org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>DotNetWikiBot Framework</title>
+<meta name="description" content="DotNetWikiBot Framework official web site." />
+<meta name="keywords" content="DotNetWikiBot,Framework,wiki,MediaWiki,client,API,software,bot,robot,.NET,Mono,console,library,dll,C#,script,scripting,program,programming,develop,development,management,compile,download,learn,XML,XHTML,advanced,parsing,regular,expression,tutorial,web,Linux,Windows,free,freeware,open,source,code,.cs,Solaris,Mac,BSD,easy-to-learn,easy-to-use,educational,beginner,easy,easily,support,report,bug,feature,forum,tracker,good,learning,ready-to-use,clean,plain,classic,platform-independent,zip,stable,mature,release,run,file,package,Visual,Basic,Managed,C++,JScript,J#" />
+<meta name="author" content="Iaroslav Vassiliev" />
+<meta name="revised" content="2015-02-16" />
+<link rel="stylesheet" type="text/css" href="dotnetwikibot_web_site.css" />
+</head>
+
+<body>
+<h1>DotNetWikiBot Framework</h1>
+<table class="nav" style="width:100%; font-size:80%; line-height:100%; color:#FFFFFF; background-color:#000080">
+<tr><td>
+&nbsp;
+<a class="nav" href="http://sourceforge.net/projects/dotnetwikibot/">Home</a> |
+<a class="nav" href="http://sourceforge.net/projects/dotnetwikibot/files/latest/download?source=files">Download</a> |
+<a class="nav" href="help/index.html">Documentation</a> |
+<a class="nav" href="http://sourceforge.net/p/dotnetwikibot/svn/HEAD/tree/DebugBot.cs">Usage examples</a> |
+<a class="nav" href="http://sourceforge.net/p/dotnetwikibot/feature-requests/">Request a new feature</a> |
+<a class="nav" href="http://sourceforge.net/p/dotnetwikibot/bugs/">Report a bug</a> |
+<a class="nav" href="http://sourceforge.net/p/dotnetwikibot/discussion/572545/">Ask for support</a>
+</td></tr>
+</table>
+
+<div class="news">
+<img src="new5.jpg" />
+<span>
+	Framework classes documentation is now available <a href="http://dotnetwikibot.sourceforge.net/help/">online</a>.
+	<br />Very comprehensive DotNetWikiBot usage examples can now be found in
+	<a href="http://sourceforge.net/p/dotnetwikibot/svn/HEAD/tree/DebugBot.cs">unit testing script</a>.
+</span>
+</div>
+
+<h2>Purpose</h2>
+<p>
+DotNetWikiBot Framework is designed to help with many complicated and routine tasks of wiki site development and maintenance. DotNetWikiBot Framework is a  full-featured client API, that allows you to build programs and web robots easily to manage information on MediaWiki-powered sites. DotNetWikiBot Framework is also good for learning C# and .NET.
+</p>
+
+<h2>Some facts about DotNetWikiBot Framework</h2>
+<ul>
+<li>DotNetWikiBot Framework is an easy-to-learn and easy-to-use library (API) for programming client applications and web robots, that could help in construction and maintenance of wiki sites.</li>
+<li>DotNetWikiBot is compiled as a .NET dynamic link library (.dll file), that could be used directly or in other products.</li>
+<li>DotNetWikiBot is written in <a href="http://msdn.microsoft.com/en-us/library/z1zx9t92(v=vs.90).aspx">C#</a>, it's based on <a href="http://www.microsoft.com/en-us/download/details.aspx?id=22">Microsoft® .NET Framework 3.5</a> and targets sites running  <a href="http://www.mediawiki.org">MediaWiki</a> software.</li>
+<li>Using <a href="http://www.mono-project.com/">Mono</a> framework, DotNetWikiBot can work under Linux, Unix, BSD, Solaris, Mac OS X and iPhone OS as well as under Windows.</li>
+<li>Any .NET language can be used to access DotNetWikiBot library functions, including Visual Basic, Managed C++, JScript, J# and F#. Only minimal programming skills are required to make bots with DotNetWikiBot Framework, it allows to build bots in fast and simple manner.</li>
+<li>DotNetWikiBot source code is located in a single .cs file, which could be easily changed and recompiled to suite your needs. It requires only C# compiler, no other tools.</li>
+<li>DotNetWikiBot Framework is good for educational purposes. It's source code is written in a plain classic manner, allowing to learn object-oriented programming, .NET features, LINQ, web robots making, regular expressions and advanced XML parsing in a short time.</li>
+<li>DotNetWikiBot doesn't require installation. It is downloaded in a single small .zip file along with compiled documentation, source codes, command-line scripts for compilation, sample GUI Utility for batch upload of files to wiki sites and ready-to-use sample bot script.</li>
+<li>DotNetWikiBot is free.</li>
+</ul>
+
+<h2>Short tutorial</h2>
+<p>
+There are only 3 types of objects in DotNetWikiBot Framework: Site, Page and PageList. They are used as follows.
+</p>
+<pre class="code">
+<span class="keyword">using</span> DotNetWikiBot;	<span class="code_comment">// Reference DotNetWikiBot namespace for easy access</span>
+
+<span class="keyword">class</span> MyBot : Bot	<span class="code_comment">// Derive your bot class from framework's Bot class</span>
+{
+    <span class="keyword">public static void</span> Main()
+    {
+        <span class="code_comment">// Firstly make Site object, specifying site's URL and your bot account</span>
+        Site enWiki = <span class="code_keyword">new</span> Site(<span class="code_string">"http://en.wikipedia.org"</span>, <span class="code_string">"myBotLogin"</span>, <span class="code_string">"myPassword"</span>);
+        <span class="code_comment">// Then make Page object, specifying site and page title in constructor</span>
+        Page p = <span class="code_keyword">new</span> Page(enWiki, <span class="code_string">"Art"</span>);
+        <span class="code_comment">// Load actual page text from live wiki</span>
+        p.Load();
+        <span class="code_comment">// Add "Visual arts" category link to "Art" page's text</span>
+        p.AddToCategory(<span class="code_string">"Visual arts"</span>);
+        <span class="code_comment">// Save "Art" article's text back to live wiki with specified comment</span>
+        p.Save(<span class="code_string">"comment: category link added"</span>, <span class="code_keyword">true</span>);
+
+        <span class="code_comment">// Make empty PageList object, representing collection of pages</span>
+        PageList pl = <span class="code_keyword">new</span> PageList(enWiki);
+        <span class="code_comment">// Fill it with 100 pages, where "nuclear disintegration" is mentioned</span>
+        pl.FillFromGoogleSearchResults(<span class="code_string">"nuclear disintegration"</span>, 100);
+        <span class="code_comment">// Load texts and metadata of all found pages from live wiki</span>
+        pl.LoadWithMetadata();
+        <span class="code_comment">// Now suppose, that we must correct some typical mistake in all our pages</span>
+        <span class="code_keyword">foreach</span> (Page i <span class="code_keyword">in</span> pl)
+            <span class="code_comment">// In each page we will replace one phrase with another</span>
+            i.text = i.text.Replace(<span class="code_string">"fusion products"</span>, <span class="code_string">"fission products"</span>);
+        <span class="code_comment">// Finally we'll save all changed pages to wiki with 5 seconds interval</span>			
+        pl.SaveSmoothly(5, <span class="code_string">"comment: mistake autocorrection"</span>, <span class="code_keyword">true</span>);
+
+        <span class="code_comment">// Now clear our PageList so we could re-use it</span>
+        pl.Clear();
+        <span class="code_comment">// Fill it with all articles in "Astronomy" category and it's subcategories</span>
+        pl.FillFromCategoryTree(<span class="code_string">"Astronomy"</span>);
+        <span class="code_comment">// Download and save all PageList's articles to specified local XML file</span>
+        pl.SaveXmlDumpToFile(<span class="code_string">"Dumps\\ArticlesAboutAstronomy.xml"</span>);		
+    }
+}
+</pre>
+
+<p>
+<a href="http://sourceforge.net/projects/dotnetwikibot" style="float:right; padding-left:10px; padding-bottom:20px"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=167838&type=13" width="120" height="30" border="0" alt="Get DotNetWikiBot Framework at SourceForge.net. Fast, secure and Free Open Source software downloads" /></a>
+</p>
+
+<!-- Google Analytics -->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-58964353-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+</body>
+</html>

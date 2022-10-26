@@ -1,0 +1,975 @@
+public class Site
+	{
+		/// <summary>Site's URI.</summary>
+		public string address;
+		/// <summary>User's account to login with.</summary>
+		public string userName;
+		/// <summary>User's password to login with.</summary>
+		public string userPass;
+		/// <summary>Default domain for LDAP authentication, if such authentication is allowed on
+		/// this site. Additional information can be found
+		/// <see href="http://www.mediawiki.org/wiki/Extension:LDAP_Authentication">here</see>.
+		/// </summary>
+		public string userDomain = "";
+		/// <summary>Site title, e.g. "Wikipedia".</summary>
+		public string name;
+		/// <summary>Site's software identificator, e.g. "MediaWiki 1.21".</summary>
+		public string software;
+		/// <summary>MediaWiki version as Version object.</summary>
+		public Version version;
+		/// <summary>If set to false, bot will use MediaWiki's common user interface where
+		/// possible, instead of using special API interface for robots (api.php). Default is true.
+		/// Set it to false manually if some problem with API interface arises on site.</summary>
+		public bool useApi = true;
+		/// <summary>Page title capitalization rule on this site.
+		/// On most sites capitalization rule is "first-letter".</summary>
+		public string capitalization;
+		/// <summary>Site's time offset from UTC.</summary>
+		public string timeOffset;
+		/// <summary>Absolute path to MediaWiki's "index.php" file on the server.</summary>
+		public string indexPath;
+		/// <summary>Absolute path to MediaWiki's "api.php" file on the server.</summary>
+		public string apiPath;
+		/// <summary>Short relative path to wiki pages (if such alias is set on the server), e.g.
+		/// "/wiki/". See <see href="http://www.mediawiki.org/wiki/Manual:Short URL">this page</see>
+		/// for details.</summary>
+		public string shortPath;
+		/// <summary>User's watchlist. This <see cref="PageList"/> is not filled automatically when
+		/// Site object is constructed, you need to call <see cref="PageList.FillFromWatchList()"/>
+		/// function to fill it.</summary>
+		public PageList watchList;
+		/// <summary>MediaWiki system messages (those listed on "Special:Allmessages" page),
+		/// user-modified versions. This dictionary is not filled automatically when Site object
+		/// is constructed, you need to call <see cref="LoadMediawikiMessages(bool)"/> 
+		/// function with "true" parameter to load messages into this dictionary.</summary>
+		public Dictionary<string,string> messages;
+		/// <summary>Default edit comment. You can set it to whatever you would like.</summary>
+		/// <example><code>mySite.defaultEditComment = "My default edit comment";</code></example>
+		public string defaultEditComment = "Automatic page editing by robot";
+		/// <summary>If set to true, all bot's edits are marked as minor by default.</summary>
+		public bool minorEditByDefault = true;
+		/// <summary>This is a maximum degree of server load when bot is
+		/// still allowed to edit pages. Higher values mean more aggressive behaviour.
+		/// See <see href="https://www.mediawiki.org/wiki/Manual:Maxlag_parameter">this page</see>
+		/// for details.</summary>
+		public int maxLag = 5;
+		/// <summary>Number of times to retry bot web action in case of temporary connection
+		///  failure or some server problems.</summary>
+		public int retryTimes = 3;
+		/// <summary>Number of seconds to pause for between edits on this site.
+		/// Adjust this variable if required, but it may be overriden by the site policy.</summary>
+		public int forceSaveDelay = 0;
+		/// <summary>Number of list items to fetch at a time. This settings concerns special pages
+		/// output and API lists output. Default is 500. Bot accounts are allowed to fetch
+		/// up to 5000 items at a time. Adjust this number if required.</summary>
+		public int fetchRate = 500;
+		/// <summary>Templates, which are used to distinguish disambiguation pages. Set this
+		/// variable manually if required. Multiple templates can be specified, use '|'
+		/// character as the delimeter. Letters case doesn't matter.</summary>
+		/// <example><code>site.disambig = "disambiguation|disambig|disam";</code></example>
+		public string disambig;
+		/// <summary>A set of regular expressions for parsing pages. Usually there is no need
+		/// to edit these regular expressions manually.</summary>
+		public Dictionary<string,Regex> regexes = new Dictionary<string,Regex>();
+		/// <summary>Site's cookies.</summary>
+		public CookieContainer cookies = new CookieContainer();
+		/// <summary>Local namespaces, default namespaces and local namespace aliases, joined into
+		/// strings, enclosed in and delimited by '|' character.</summary>
+		public Dictionary<int,string> namespaces;
+		/// <summary>Parsed supplementary data, mostly localized strings.</summary>
+		public Dictionary<string,string> generalData;
+		/// <summary>Parsed API session-wide security tokens for editing.</summary>
+		public Dictionary<string, string> tokens;
+		/// <summary>Site's language.</summary>
+		public string language;
+		/// <summary>Site's language culture. Required for string comparison.</summary>
+		public CultureInfo langCulture;
+		/// <summary>Randomly chosen regional culture for this site's language.
+		/// Required to parse dates.</summary>
+		public CultureInfo regCulture;
+
+		/// <summary>Supplementary data, mostly localized strings.</summary>
+		/// <exclude/>
+		public XElement generalDataXml;
+		/// <summary>Time of last page saving operation on this site expressed in UTC.
+		/// This internal parameter is used to prevent server overloading.</summary>
+		/// <exclude/>
+		public DateTime lastWriteTime = DateTime.MinValue;
+		/// <summary>Wiki server's time offset from local computer's time in seconds.
+		/// Timezones difference is omitted, UTC time is compared with UTC time.</summary>
+		/// <exclude/>
+		public int timeOffsetSeconds;
+
+
+		/// <summary>This constructor uses default userName and password for site, if
+		/// userName and password are found in "Defaults.dat" file in bot's "Cache"
+		/// subdirectory. File must be UTF8-encoded and must contain user names and passwords in
+		/// the following format:
+		/// <code>
+		/// https://en.wikipedia.org|MyUserName|MyPassword
+		/// https://de.wikipedia.org|MyUserName|MyPassword|MyDomain
+		/// </code>
+		/// Each site's accouint must be on the new line.
+		/// This function allows distributing compiled bots without revealing passwords.</summary>
+		/// <param name="address">Wiki site's URI. It must point to the main page of the wiki, e.g.
+		/// "https://en.wikipedia.org" or "http://127.0.0.1:80/w/index.php?title=Main_page".</param>
+		/// <returns>Returns Site object.</returns>
+		public Site(string address)
+		{
+			string defaultsFile = Bot.cacheDir + Path.DirectorySeparatorChar + "Defaults.dat";
+			if (File.Exists(defaultsFile) == true)
+			{
+				string[] lines = File.ReadAllLines(defaultsFile, Encoding.UTF8);
+				foreach (string line in lines) {
+					if (line.StartsWith(address + '|')) {
+						string[] tokens = line.Split('|');
+						if (tokens.GetUpperBound(0) < 2) {
+							throw new WikiBotException(
+								Bot.Msg("\"\\Cache\\Defaults.dat\" file is invalid."));
+						}
+						this.address = tokens[0];
+						this.userName = tokens[1];
+						this.userPass = tokens[2];
+						if (tokens.GetUpperBound(0) >= 3)
+							this.userDomain = tokens[3];
+					}
+				}
+				if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(userPass))
+					throw new WikiBotException(string.Format(
+						Bot.Msg("Site \"{0}\" was not found in \"\\Cache\\Defaults.dat\" file."),
+						address));
+			}
+			else
+				throw new WikiBotException(Bot.Msg("\"\\Cache\\Defaults.dat\" file not found."));
+
+			Initialize();
+		}
+
+		/// <summary>This constructor is used to generate most Site objects.</summary>
+		/// <param name="address">Wiki site's URI. It must point to the main page of the wiki, e.g.
+		/// "https://en.wikipedia.org" or "http://127.0.0.1:80/w/index.php?title=Main_page".</param>
+		/// <param name="userName">User name to log in.</param>
+		/// <param name="userPass">Password.</param>
+		/// <returns>Returns Site object.</returns>
+		public Site(string address, string userName, string userPass)
+			: this(address, userName, userPass, "") { }
+
+		/// <summary>This constructor is used for LDAP authentication. Additional information can
+		/// be found <see href="http://www.mediawiki.org/wiki/Extension:LDAP_Authentication">here
+		/// </see>.</summary>
+		/// <param name="address">Wiki site's URI. It must point to the main page of the wiki, e.g.
+		/// "https://en.wikipedia.org" or "http://127.0.0.1:80/w/index.php?title=Main_page".</param>
+		/// <param name="userName">User name to log in.</param>
+		/// <param name="userPass">Password.</param>
+		/// <param name="userDomain">Domain name for LDAP authentication.</param>
+		/// <returns>Returns Site object.</returns>
+		public Site(string address, string userName, string userPass, string userDomain)
+		{
+			this.address = address;
+			this.userName = userName;
+			this.userPass = userPass;
+			this.userDomain = userDomain;
+
+			Initialize();
+		}
+
+		/// <summary>This internal function initializes Site object.</summary>
+		/// <exclude/>
+		private void Initialize()
+		{
+			// Correct the address if required
+			if (!address.StartsWith("http"))
+				address = "http://" + address;
+			if (Bot.CountMatches(address, "/", false) == 3 && address.EndsWith("/"))
+				address = address.Remove(address.Length - 1);
+
+			regexes["titleLink"] =
+				new Regex("<a [^>]*title=\"(?<title>.+?)\"");
+			regexes["titleLinkInList"] =
+				new Regex("<li(?: [^>]*)?>\\s*<a [^>]*title=\"(?<title>.+?)\"");
+			regexes["titleLinkInTable"] =
+				new Regex("<td(?: [^>]*)?>\\s*<a [^>]*title=\"(?<title>.+?)\"");
+			regexes["titleLinkShown"] =
+				new Regex("<a [^>]*title=\"([^\"]+)\"[^>]*>\\s*\\1\\s*</a>");
+			regexes["linkToSubCategory"] =
+				new Regex(">([^<]+)</a></div>\\s*<div class=\"CategoryTreeChildren\"");
+			regexes["linkToImage"] =
+				new Regex("<div class=\"gallerytext\">\n<a href=\"[^\"]*?\" title=\"([^\"]+?)\">");
+			regexes["wikiLink"] =
+				new Regex(@"\[\[(?<link>(?<title>.+?)(?<params>\|.+?)?)]]");
+			regexes["wikiTemplate"] =
+				new Regex(@"(?s)\{\{(.+?)((\|.*?)*?)}}");
+			regexes["webLink"] =
+				new Regex("(https?|t?ftp|news|nntp|telnet|irc|gopher)://([^\\s'\"<>]+)");
+			regexes["noWikiMarkup"] =
+				new Regex("(?is)<nowiki>(.*?)</nowiki>");
+			regexes["editToken"] =
+				new Regex("(?i)value=\"([^\"]+)\"[^>]+name=\"wpEditToken\"" +
+					"|name=\"wpEditToken\"[^>]+value=\"([^\"]+)\"");
+			regexes["editTime"] =
+				new Regex("(?i)value=\"([^\"]+)\"[^>]+name=\"wpEdittime\"" +
+					"|name=\"wpEdittime\"[^>]+value=\"([^\"]+)\"");
+			regexes["startTime"] =
+				new Regex("(?i)value=\"([^\"]+)\"[^>]+name=\"wpStarttime\"" +
+					"|name=\"wpStarttime\"[^>]+value=\"([^\"]+)\"");
+			regexes["baseRevId"] =
+				new Regex("(?i)value=\"([^\"]+)\"[^>]+name=\"baseRevId\"" +
+					"|name=\"baseRevId\"[^>]+value=\"([^\"]+)\"");
+
+			// Find path to index.php
+			string cacheFile = Bot.cacheDir + Path.DirectorySeparatorChar +
+				Bot.UrlEncode(address.Replace("://", ".").Replace("/", ".")) + ".xml";
+			if (!Directory.Exists(Bot.cacheDir))
+				Directory.CreateDirectory(Bot.cacheDir);
+			XElement cache;
+			if (File.Exists(cacheFile) == true) {
+				cache = XElement.Load(cacheFile);
+				indexPath = cache.Descendants("indexPath").FirstOrDefault().Value;
+			}
+			else {
+				string src = GetWebPage(address);
+				Uri addressUri = new Uri(address);
+				Regex hrefRegex = new Regex("(?i) href=\"(([^\"]*)(index|api)\\.php)");
+				try {
+					foreach (Match m in hrefRegex.Matches(src)) {
+						if (m.Groups[1].Value.StartsWith(address)) {
+							indexPath = m.Groups[2].Value + "index.php";
+							break;
+						}
+						else if (m.Groups[1].Value.StartsWith("//" + addressUri.Authority)) {
+							if (address.StartsWith("https:"))
+								indexPath = "https:" + m.Groups[2].Value + "index.php";
+							else
+								indexPath = "http:" + m.Groups[2].Value + "index.php";
+							break;
+						}
+						else if (m.Groups[1].Value[0] == '/' && m.Groups[1].Value[1] != '/') {
+							indexPath = address + m.Groups[2].Value + "index.php";
+							break;
+						}
+						else if (string.IsNullOrEmpty(m.Groups[2].Value)) {
+							indexPath = address + "/index.php";
+							break;
+						}
+					}
+				}
+				catch {
+					throw new WikiBotException(Bot.Msg("Can't find path to index.php."));
+				}
+				if (indexPath == null)
+					throw new WikiBotException(Bot.Msg("Can't find path to index.php."));
+				if (indexPath.Contains("api.php"))
+					indexPath = indexPath.Replace("api.php", "index.php");
+
+				cache = new XElement("siteInfo", new XElement("indexPath", indexPath));
+				cache.Save(cacheFile);
+			}
+			apiPath = indexPath.Replace("index.php", "api.php");
+
+			Console.WriteLine(Bot.Msg("Logging in..."));
+
+			LogIn();
+
+			LoadGeneralInfo();
+
+			// Load API security tokens if available
+			string tokensXmlSrc = GetWebPage(apiPath + "?action=query&format=xml&meta=tokens" +
+				"&type=csrf|deleteglobalaccount|patrol|rollback|setglobalaccountstatus" +
+				"|userrights|watch&curtimestamp");
+			XElement tokensXml = XElement.Parse(tokensXmlSrc);
+			if (tokensXml.Element("query") != null) {
+				tokens = (
+					from attr in tokensXml.Element("query").Element("tokens").Attributes()
+					select new {
+						attrName = attr.Name.ToString(),
+						attrValue = attr.Value
+					}
+				).ToDictionary(s => s.attrName, s => s.attrValue);
+			}
+
+			if (!Bot.isRunningOnMono)
+				Bot.DisableCanonicalizingUriAsFilePath();    // .NET bug evasion
+
+			Bot.lastSite = this;
+
+			Console.WriteLine(Bot.Msg("Site: {0} ({1})"), name, software);
+		}
+
+		/// <summary>This internal function gets general information about the site.</summary>
+		/// <exclude/>
+		private void LoadGeneralInfo()
+		{
+			string src = GetWebPage(apiPath + "?action=query&format=xml" +
+				"&meta=siteinfo&siprop=general|namespaces|namespacealiases|magicwords|" +
+				"interwikimap|fileextensions|variables");
+			generalDataXml = XElement.Parse(src).Element("query");
+
+			// Load namespaces
+			namespaces = (
+				from el in generalDataXml.Element("namespaces").Descendants("ns")
+				//where el.Attribute("id").Value != "0"
+				select new {
+					code = int.Parse(el.Attribute("id").Value),
+					name = ('|' + (el.IsEmpty ? "" : el.Value) +
+							'|' + (!el.IsEmpty && el.Value != el.Attribute("canonical").Value
+									? el.Attribute("canonical").Value + '|' : "" )
+							).ToString()
+				}
+			).ToDictionary(s => s.code, s => s.name);
+
+			// Load and add namespace aliases
+			var aliases = (
+				from el in generalDataXml.Element("namespacealiases").Descendants("ns")
+				select new {
+					code = int.Parse(el.Attribute("id").Value),
+					name = el.Value.ToString()
+				}
+			);
+			foreach (var alias in aliases)
+				namespaces[alias.code] += alias.name + '|';
+					// namespace 0 may have an alias (!)
+
+			// Load general site properties
+			generalData = (
+				from attr in generalDataXml.Element("general").Attributes()
+				select new {
+					attrName = attr.Name.ToString(),
+					attrValue = attr.Value
+				}
+			).ToDictionary(s => s.attrName, s => s.attrValue);
+
+			// Load interwiki which are recognized locally, interlanguage links are included
+			// Prefixes are combined into string delimited by '|'
+			generalData["interwiki"] = string.Join( "|", (
+				from el in generalDataXml.Descendants("iw")
+				select el.Attribute("prefix").Value
+			).ToArray());
+
+			// Load MediaWiki variables (https://www.mediawiki.org/wiki/Help:Magic_words)
+			// These are used in double curly brackets, like {{CURRENTVERSION}} and must
+			// be distinguished from templates.
+			// Variables are combined into string delimited by '|'.
+			generalData["variables"] = string.Join("|", (
+				from el in generalDataXml.Descendants("v")
+				select el.Value
+			).ToArray());
+
+			// Load MediaWiki magic words (https://www.mediawiki.org/wiki/Help:Magic_words)
+			// These include MediaWiki variables and parser functions which are used in
+			// double curly brackets, like {{padleft:xyz|stringlength}} or
+			// {{#formatdate:date}} and must be distinguished from templates.
+			// Magic words are combined into string delimited by '|'.
+			generalData["magicWords"] = string.Join("|", (
+				from el in generalDataXml.Element("magicwords").Descendants("alias")
+				select el.Value
+			).ToArray());
+
+			// Set Site object's properties
+			if (generalData.ContainsKey("articlepath"))
+				shortPath = generalData["articlepath"].Replace("$1", "");
+			if (generalData.ContainsKey("generator")) {
+				version = new Version(Regex.Replace(generalData["generator"], @"[^\d\.]", ""));
+				if (version < new Version("1.20"))
+					Console.WriteLine(Bot.nl + Bot.nl + Bot.Msg("WARNING: This MediaWiki " +
+						"version is outdated, some bot functions may not work properly. Please " +
+						"consider downgrading to DotNetWikiBot {0} to work with " +
+						"this site.") + Bot.nl + Bot.nl, "2.x");
+			}
+			language = generalData["lang"];
+			capitalization = generalData["case"];
+			timeOffset = generalData["timeoffset"];
+			name = generalData["sitename"];
+			software = generalData["generator"];
+
+			DateTime wikiServerTime = DateTime.ParseExact(generalData["time"],
+				"yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture);
+			timeOffsetSeconds = (int)(wikiServerTime - DateTime.UtcNow).TotalSeconds - 2;
+				// 2 seconds are substracted so we never get time in the future on the server
+
+			// Select general and regional CultureInfo, mainly for datetime parsing
+			try {
+				langCulture = new CultureInfo(language, false);
+			}
+			catch (Exception) {
+				langCulture = new CultureInfo("");
+			}
+			if (langCulture.Equals(CultureInfo.CurrentUICulture.Parent))
+				regCulture = CultureInfo.CurrentUICulture;
+			else {
+				try {
+					regCulture = CultureInfo.CreateSpecificCulture(language);
+				}
+				catch (Exception) {
+					foreach (CultureInfo ci in
+						CultureInfo.GetCultures(CultureTypes.SpecificCultures)) {
+						if (langCulture.Equals(ci.Parent)) {
+							regCulture = ci;
+							break;
+						}
+					}
+					if (regCulture == null)
+						regCulture = CultureInfo.InvariantCulture;
+				}
+			}
+
+			// Load local redirection tags
+			generalData["redirectTags"] = (
+				from el in Bot.commonDataXml.Element("RedirectionTags").Descendants("rd")
+				where el.Attribute("lang").Value == language
+				select el.Value
+			).SingleOrDefault();
+
+			// Construct regular expressions
+			regexes["redirect"] = new Regex(@"(?i)^ *#(?:" + generalData["redirectTags"] +
+				@")\s*:?\s*\[\[(.+?)(\|.+)?]]");
+				// RegexOptions.Compiled option seems to be too slow
+
+			regexes["magicWordsAndVars"] = new Regex(@"^(?:" +
+				generalData["magicWords"].ToLower() + '|' + generalData["variables"] + ')');
+
+			string allNsPrefixes = string.Join("|",
+				namespaces.Select(x => x.Value.Substring(1, x.Value.Length-2)).ToArray());
+			allNsPrefixes = allNsPrefixes.Replace("||", "|");    // remove empty string from ns 0
+			regexes["allNsPrefixes"] = new Regex(@"(?i)^(?:" + allNsPrefixes + "):");
+				// (?i)^(?:Media|Special|Talk|User|U|User talk|UT|...|Module talk):
+
+			regexes["interwikiLink"] = new Regex(@"(?i)\[\[((" + generalData["interwiki"] +
+				"):(.+?))]]");
+
+			regexes["wikiCategory"] = new Regex(
+				@"(?i)\[\[\s*(((" + GetNsPrefixes(14) + @"):(.+?))(\|.+?)?)]]");
+
+			regexes["wikiImage"] = new Regex(@"\[\[(?i)((" + GetNsPrefixes(6) +
+				@"):(.+?))(\|(.+?))*?]]");
+
+			regexes["linkToImage2"] = new Regex("<a href=\"[^\"]*?\" title=\"(" +
+				Regex.Escape(GetNsPrefix(6)) + "[^\"]+?)\">");
+					// that's right, localized namespace prefix only
+
+			// Parser functions are now loaded from site (among magicWords)
+			//generalData.Add("parserFunctions",
+				//Bot.commonDataXml.Descendants("pf").Select(el => el.Value).ToArray());
+		}
+
+		/// <summary>Gets MediaWiki system messages
+		/// (those listed on "Special:Allmessages" page).</summary>
+		/// <param name="modified">If true, the user-customized messages are returned.
+		/// If false, original unmodified messages from MediaWiki package are returned.
+		/// The latter is required very rarely.</param>
+		/// <returns>Returns dictionary, where keys are message identifiers (all in lower case)
+		/// and values are message texts.</returns>
+		public Dictionary<string,string> LoadMediawikiMessages(bool modified)
+		{
+			Console.WriteLine(Bot.Msg("Updating MediaWiki messages. Please, wait..."));
+			Dictionary<string,string> mediaWikiMessages;
+
+			if (useApi && modified) {    // there is no way to get unmodified versions via API
+				// no paging is required, all messages are returned in one chunk
+				string src = GetWebPage(apiPath + "?action=query" +
+					"&meta=allmessages&format=xml&amenableparser=1&amcustomised=all");
+						// "&amcustomised=all" query actually brings users-modified messages
+				XElement messagesXml = XElement.Parse(src);
+				
+				mediaWikiMessages = (
+					from el in messagesXml.Descendants("message")
+					select new {
+						id = el.Attribute("name").Value,
+						body = el.Value
+					}
+				).ToDictionary(s => s.id, s => s.body);
+			}
+			else {
+				// paging may be broken
+				string res = indexPath + "?title=Special:AllMessages&limit=50000&filter=all";
+				string src = "", messageId = "";
+				mediaWikiMessages = new Dictionary<string,string>();
+				Regex nextPortionRegex =
+					new Regex("offset=([^\"&]+)[^\"]*?\" title=\"[^\"]+\" rel=\"next\"");
+				do {
+					src = GetWebPage(res + (!string.IsNullOrEmpty(src) ? "&offset=" +
+						HttpUtility.HtmlDecode(nextPortionRegex.Match(src).Groups[1].Value) : ""));
+					src = Bot.GetSubstring(src, "<tbody>", "</tbody>");
+					using (XmlReader reader = Bot.GetXMLReader(src)) {
+						reader.ReadToFollowing("tbody");
+						while (reader.Read()) {
+							if (reader.Name == "tr"
+								&& reader.NodeType == XmlNodeType.Element
+								&& reader["id"] != null)
+								messageId = reader["id"].Replace("msg_", "");
+							else if (reader.Name == "td"
+								&& reader.NodeType == XmlNodeType.Element
+								&& reader["class"] == "am_default")
+								mediaWikiMessages[messageId] = reader.ReadString();
+							else if (modified
+								&& reader.Name == "td"
+								&& reader.NodeType == XmlNodeType.Element
+								&& reader["class"] == "am_actual")
+								mediaWikiMessages[messageId] = reader.ReadString();
+							else if (reader.Name == "tbody"
+								&& reader.NodeType == XmlNodeType.EndElement)
+								break;
+						}
+					}
+				} while (nextPortionRegex.IsMatch(src));
+			}
+
+			if (modified)
+				messages = mediaWikiMessages;
+			Console.WriteLine(Bot.Msg("MediaWiki system messages have been loaded successfully."));
+			return mediaWikiMessages;
+		}
+
+		/// <summary>Logs in and retrieves cookies.</summary>
+		private void LogIn()
+		{
+			if (!useApi) {
+				string loginPageSrc = PostDataAndGetResult(indexPath +
+					"?title=Special:Userlogin", "", true, true);
+				string loginToken = "";
+				int loginTokenPos = loginPageSrc.IndexOf(
+					"<input type=\"hidden\" name=\"wpLoginToken\" value=\"");
+				if (loginTokenPos != -1)
+					loginToken = loginPageSrc.Substring(loginTokenPos + 48, 32);
+
+				string postData = string.Format("wpName={0}&wpPassword={1}&wpDomain={2}" +
+					"&wpLoginToken={3}&wpRemember=1&wpLoginattempt=Log+in",
+					Bot.UrlEncode(userName), Bot.UrlEncode(userPass),
+					Bot.UrlEncode(userDomain), Bot.UrlEncode(loginToken));
+				string respStr = PostDataAndGetResult(indexPath +
+					"?title=Special:Userlogin&action=submitlogin&type=login",
+					postData, true, false);
+				if (respStr.Contains("<div class=\"errorbox\">"))
+					throw new WikiBotException(
+						"\n\n" + Bot.Msg("Login failed. Check your username and password.") + "\n");
+				Console.WriteLine(this.address + ": " + Bot.Msg("Logged in as {0}."), userName);
+			}
+			else {
+				string postData = string.Format("lgname={0}&lgpassword={1}&lgdomain={2}",
+						Bot.UrlEncode(userName), Bot.UrlEncode(userPass),
+                        Bot.UrlEncode(userDomain));
+                
+                Console.WriteLine("test");
+
+				// At first load login security token
+				string tokenXmlSrc = PostDataAndGetResult(apiPath +
+					"?action=query&meta=tokens&type=login&format=xml", "", true, false);
+				XElement tokenXml = XElement.Parse(tokenXmlSrc);
+				string respStr = "", loginToken = "";
+				try {
+					loginToken = tokenXml.Element("query").Element("tokens")
+						.Attribute("logintoken").Value;
+				}
+				catch {
+					// old fallback method
+					respStr = PostDataAndGetResult(apiPath +
+						"?action=login&format=xml", postData, true, false);
+					if (respStr.Contains("result=\"Success\"")) {
+						Console.WriteLine(this.address + ": " + Bot.Msg("Logged in as {0}."), userName);
+						return;
+					}
+					int tokenPos = respStr.IndexOf("token=\"");
+					if (tokenPos < 1)
+						throw new WikiBotException(
+							"\n\n" + Bot.Msg("Login failed. Check your username and password.") + "\n");
+					loginToken = respStr.Substring(tokenPos + 7, 32);
+				}
+
+				postData += "&lgtoken=" + Bot.UrlEncode(loginToken);
+				respStr = PostDataAndGetResult(apiPath +
+					"?action=login&format=xml", postData, true, false);
+				if (!respStr.Contains("result=\"Success\""))
+					throw new WikiBotException(
+						"\n\n" + Bot.Msg("Login failed. Check your username and password.") + "\n");
+				Console.WriteLine(this.address + ": " + Bot.Msg("Logged in as {0}."), userName);
+			}
+		}
+
+		/// <summary>Gets the list of all WikiMedia Foundation wiki sites as listed
+		/// <see href="http://meta.wikimedia.org/wiki/Special:SiteMatrix">here</see>.</summary>
+		/// <param name="officialOnly">If set to false, function also returns special and private
+		/// WikiMedia projects.</param>
+		/// <returns>Returns list of strings.</returns>
+		public List<string> GetWikimediaProjects(bool officialOnly)
+		{
+			string src = GetWebPage("http://meta.wikimedia.org/wiki/Special:SiteMatrix");
+			if (officialOnly)
+				src = Bot.GetSubstring(src, "<a id=\"aa\" name=\"aa\">",
+					"<a id=\"total\" name=\"total\">");
+			else
+				src = Bot.GetSubstring(src, "<a id=\"aa\" name=\"aa\">",
+					"class=\"printfooter\"");
+			Regex siteRegex = new Regex("<a href=\"(?://)?([^\"/]+)");
+			return siteRegex.Matches(src).Cast<Match>().Select(m => m.Groups[1].Value).ToList();
+		}
+
+		/// <summary>Gets the text of page from web.</summary>
+		/// <param name="pageURL">Absolute or relative URI of page to get.</param>
+		/// <returns>Returns source code.</returns>
+		public string GetWebPage(string pageURL)
+		{
+			return PostDataAndGetResult(pageURL, "", false, true);
+		}
+
+		/// <summary>Posts specified string to requested resource
+		/// and gets the result text.</summary>
+		/// <param name="pageURL">Absolute or relative URI of page to get.</param>
+		/// <param name="postData">String to post to site with web request.</param>
+		/// <returns>Returns text.</returns>
+		public string PostDataAndGetResult(string pageURL, string postData)
+		{
+			return PostDataAndGetResult(pageURL, postData, false, true);
+		}
+
+		/// <summary>Posts specified string to requested resource
+		/// and gets the result text.</summary>
+		/// <param name="pageURL">Absolute or relative URI of page to get.</param>
+		/// <param name="postData">String to post to site with web request.</param>
+		/// <param name="getCookies">If set to true, gets cookies from web response and
+		/// saves it in Site.cookies container.</param>
+		/// <param name="allowRedirect">Allow auto-redirection of web request by server.</param>
+		/// <returns>Returns text.</returns>
+		public string PostDataAndGetResult(string pageURL, string postData, bool getCookies,
+			bool allowRedirect)
+		{
+			if (string.IsNullOrEmpty(pageURL))
+				throw new ArgumentNullException("pageURL", Bot.Msg("No URL specified."));
+			if (pageURL.StartsWith("/") && !pageURL.StartsWith("//"))
+				pageURL = address + pageURL;
+
+			int retryDelaySeconds = 60;
+			HttpWebResponse webResp = null;
+			for (int errorCounter = 0; true; errorCounter++) {
+                
+                ServicePointManager.Expect100Continue = true;
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; //hack https://stackoverflow.com/questions/2859790/the-request-was-aborted-could-not-create-ssl-tls-secure-channel/48930280#48930280
+
+
+				HttpWebRequest webReq = (HttpWebRequest)WebRequest.Create(pageURL);
+				webReq.Proxy.Credentials = CredentialCache.DefaultCredentials;
+				webReq.UseDefaultCredentials = true;
+				webReq.ContentType = "application/x-www-form-urlencoded";
+				webReq.Headers.Add("Cache-Control", "no-cache, must-revalidate");
+				webReq.UserAgent = Bot.botVer;
+				webReq.AllowAutoRedirect = allowRedirect;
+				if (cookies.Count == 0)
+					webReq.CookieContainer = new CookieContainer();
+				else
+					webReq.CookieContainer = cookies;
+				if (Bot.unsafeHttpHeaderParsingUsed == 0) {
+					webReq.ProtocolVersion = HttpVersion.Version10;
+					webReq.KeepAlive = false;
+				}
+				if (!Bot.isRunningOnMono) {    // Mono bug evasion
+					// last checked in January 2015 on Mono 3.12 for Windows
+					// http://mono.1490590.n4.nabble.com/...
+					// ...EntryPointNotFoundException-CreateZStream-td4661364.html
+					webReq.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+				}
+				if (!string.IsNullOrEmpty(postData)) {
+					if (Bot.isRunningOnMono)    // Mono bug 636219 evasion
+						webReq.AllowAutoRedirect = false;
+							// https://bugzilla.novell.com/show_bug.cgi?id=636219
+					webReq.Method = "POST";
+					//webReq.Timeout = 180000;
+					postData += "&maxlag=" + maxLag;
+					byte[] postBytes = Encoding.UTF8.GetBytes(postData);
+					webReq.ContentLength = postBytes.Length;
+					Stream reqStrm = webReq.GetRequestStream();
+					reqStrm.Write(postBytes, 0, postBytes.Length);
+					reqStrm.Close();
+				}		
+				try {
+					webResp = (HttpWebResponse)webReq.GetResponse();
+					if (webResp.Headers["Retry-After"] != null)
+						throw new WebException("Service is unavailable due to high load.");
+							// API can return HTTP code 200 (OK) along with "Retry-After"
+					break;
+				}
+				catch (WebException e) {
+
+					if (webResp == null)
+						throw;
+
+					if (webReq.AllowAutoRedirect == false &&
+						webResp.StatusCode == HttpStatusCode.Redirect)    // Mono bug 636219 evasion
+							return "";
+
+					if (e.Message.Contains("Section=ResponseStatusLine")) {   // Known Squid problem
+						Bot.SwitchUnsafeHttpHeaderParsing(true);
+						return PostDataAndGetResult(pageURL, postData, getCookies, allowRedirect);
+					}
+
+					if (webResp.Headers["Retry-After"] != null) {    // Server is very busy
+						if (errorCounter > retryTimes)
+							throw;
+						// See https://www.mediawiki.org/wiki/Manual:Maxlag_parameter
+						int seconds;
+						Int32.TryParse(webResp.Headers["Retry-After"], out seconds);
+						if (seconds > 0)
+							retryDelaySeconds = seconds;
+						Console.Error.WriteLine(e.Message);
+						Console.Error.WriteLine(string.Format(Bot.Msg(
+							"Retrying in {0} seconds..."), retryDelaySeconds));
+						Bot.Wait(retryDelaySeconds);
+					}
+					else if (e.Status == WebExceptionStatus.ProtocolError) {
+						int code = (int) webResp.StatusCode;
+						if (code == 500 || code == 502 || code == 503 || code == 504)
+						{
+							// Remote server problem, retry
+							if (errorCounter > retryTimes)
+								throw;
+							Console.Error.WriteLine(e.Message);
+							Console.Error.WriteLine(string.Format(Bot.Msg(
+								"Retrying in {0} seconds..."), retryDelaySeconds));
+							Bot.Wait(retryDelaySeconds);
+
+						}
+						else
+							throw;
+					}
+					else
+						throw;
+				}
+			}
+			Stream respStream = webResp.GetResponseStream();
+			if (webResp.ContentEncoding.ToLower().Contains("gzip"))
+				respStream = new GZipStream(respStream, CompressionMode.Decompress);
+			else if (webResp.ContentEncoding.ToLower().Contains("deflate"))
+				respStream = new DeflateStream(respStream, CompressionMode.Decompress);
+			if (getCookies == true) {
+				Uri siteUri = new Uri(address);
+				foreach (Cookie cookie in webResp.Cookies) {
+					if (cookie.Domain[0] == '.' &&
+						cookie.Domain.Substring(1) == siteUri.Host)
+							cookie.Domain = cookie.Domain.TrimStart(new char[] {'.'});
+					cookies.Add(cookie);
+				}
+			}
+			StreamReader strmReader = new StreamReader(respStream, Encoding.UTF8);
+			string respStr = strmReader.ReadToEnd();
+			strmReader.Close();
+			webResp.Close();
+			return respStr;
+		}
+
+		/// <summary>Gets and parses results of specified custom API query.
+		/// Only some basic queries are supported and can be parsed automatically.</summary>
+		/// <param name="query">Type of query, e.g. "list=logevents" or "prop=links".</param>
+		/// <param name="queryParams">Additional query parameters, specific to the
+		/// query. Options and their descriptions can be obtained by calling api.php on target site
+		/// without parameters, e.g. http://en.wikipedia.org/w/api.php,
+		/// <see href="http://en.wikipedia.org/wiki/Special:ApiSandbox">API Sandbox</see>
+		/// is also very useful for experiments.
+		/// Parameters' values must be URL-encoded with <see cref="Bot.UrlEncode(string)"/> function
+		/// before calling this function.</param>
+		/// <param name="limit">Maximum number of resultant strings to fetch.</param>
+		/// <example><code>
+		/// GetApiQueryResult("list=categorymembers",
+		/// 	"cmnamespace=0|14&amp;cmcategory=" + Bot.UrlEncode("Physical sciences"),
+		/// 	int.MaxValue);
+		/// </code></example>
+		/// <example><code>
+		/// GetApiQueryResult("list=logevents",
+		/// 	"letype=patrol&amp;titles=" + Bot.UrlEncode("Physics"),
+		/// 	200);
+		/// </code></example>
+		/// <example><code>
+		/// GetApiQueryResult("prop=links",
+		/// 	"titles=" + Bot.UrlEncode("Physics"),
+		/// 	int.MaxValue);
+		/// </code></example>
+		/// <returns>List of dictionary objects is returned. Dictionary keys will contain the names
+		/// of attributes of each found target element, and dictionary values will contain values
+		/// of those attributes. If target element is not empty element, it's value will be
+		/// included into dictionary under special "_Value" key.</returns>
+		public List<Dictionary<string,string>> GetApiQueryResult(string query,
+			string queryParams, int limit)
+		{
+			if (string.IsNullOrEmpty(query))
+				throw new ArgumentNullException("query");
+			if (limit <= 0)
+				throw new ArgumentOutOfRangeException("limit");
+
+			var queryXml =
+				from el in Bot.commonDataXml.Element("ApiOptions").Descendants("query")
+				where el.Value == query
+				select el;
+			if (queryXml == null)
+				throw new WikiBotException(
+					string.Format(Bot.Msg("The list \"{0}\" is not supported."), query));
+
+			string prefix = queryXml.FirstOrDefault().Attribute("prefix").Value;
+			string targetTag = queryXml.FirstOrDefault().Attribute("tag").Value;
+			string targetAttribute = queryXml.FirstOrDefault().Attribute("attribute").Value;
+			if (string.IsNullOrEmpty(prefix) || string.IsNullOrEmpty(targetTag))
+				throw new WikiBotException(
+					string.Format(Bot.Msg("The list \"{0}\" is not supported."), query));
+
+			List<Dictionary<string, string>> results = new List<Dictionary<string,string>>();
+			string continueFromAttr = prefix + "from";
+			string continueAttr = prefix + "continue";
+			string queryUri = apiPath + "?format=xml&action=query&" + query +
+				'&' + prefix + "limit=" + (limit > fetchRate ? fetchRate : limit).ToString();
+			string src = "", next = "", queryFullUri = "";
+			do
+			{
+				queryFullUri = queryUri;
+				if (next != "")
+					queryFullUri += '&' + prefix + "continue=" + Bot.UrlEncode(next);
+				src = PostDataAndGetResult(queryFullUri, queryParams);
+				using (XmlTextReader reader = new XmlTextReader(new StringReader(src)))
+				{
+					next = "";
+					while (reader.Read())
+					{
+						if (reader.NodeType == XmlNodeType.Element && reader.Name == targetTag) {
+							Dictionary<string,string> dict = new Dictionary<string,string>();
+							if (!reader.IsEmptyElement) {
+								dict["_Value"] = HttpUtility.HtmlDecode(reader.Value);
+								if (targetAttribute == null)
+									dict["_Target"] = dict["_Value"];
+							}
+							for (int i = 0; i < reader.AttributeCount; i++) {
+								reader.MoveToAttribute(i);
+								dict[reader.Name] = HttpUtility.HtmlDecode(reader.Value);
+								if (targetAttribute != null && reader.Name == targetAttribute)
+									dict["_Target"] = dict[reader.Name];
+							}
+							results.Add(dict);
+						}
+						else if (reader.IsEmptyElement && reader[continueFromAttr] != null)
+							next = reader[continueFromAttr];
+						else if (reader.IsEmptyElement && reader[continueAttr] != null)
+							next = reader[continueAttr];
+					}
+				}
+			}
+			while (next != "" && results.Count < limit);
+
+			if (results.Count > limit) {
+				results.RemoveRange(limit, results.Count - limit);
+			}
+			return results;
+		}
+
+		/// <summary>Gets main local prefix for specified namespace and colon.</summary>
+		/// <param name="nsIndex">Index of namespace to get prefix for.</param>
+		/// <returns>Returns the prefix with colon, e.g., "Kategorie:".</returns>
+		public string GetNsPrefix(int nsIndex)
+		{
+			if (nsIndex == 0)
+				return "";
+			if (!namespaces.Keys.Contains(nsIndex))
+				throw new ArgumentOutOfRangeException("nsIndex");
+			return namespaces[nsIndex].Substring(1, namespaces[nsIndex].IndexOf('|', 1) - 1) + ':';
+		}
+
+		/// <summary>Gets canonical default English prefix for specified namespace and colon.
+		/// If default prefix is not found the main local prefix is returned.</summary>
+		/// <param name="nsIndex">Index of namespace to get prefix for.</param>
+		/// <returns>Returns the prefix with colon, e.g., "Category:".</returns>
+		public string GetEnglishNsPrefix(int nsIndex)
+		{
+			if (nsIndex == 0)
+				return "";
+			if (!namespaces.Keys.Contains(nsIndex))
+				throw new ArgumentOutOfRangeException("nsIndex");
+			int secondDelimPos = namespaces[nsIndex].IndexOf('|', 1);
+			int thirdDelimPos = namespaces[nsIndex].IndexOf('|', secondDelimPos + 1);
+			if (thirdDelimPos == -1)
+				return namespaces[nsIndex].Substring(1, secondDelimPos - 1) + ':';
+			else
+				return namespaces[nsIndex].Substring(secondDelimPos + 1,
+					thirdDelimPos - secondDelimPos - 1) + ':';
+		}
+
+		/// <summary>Gets all names and aliases for specified namespace delimited by '|' character
+		/// and escaped for use within Regex patterns.</summary>
+		/// <param name="nsIndex">Index of namespace to get prefixes for.</param>
+		/// <returns>Returns prefixes string, e.g. "Category|Kategorie".</returns>
+		public string GetNsPrefixes(int nsIndex)
+		{
+			if (!namespaces.Keys.Contains(nsIndex))
+				throw new ArgumentOutOfRangeException("nsIndex");
+			string str = namespaces[nsIndex].Substring(1, namespaces[nsIndex].Length - 2);
+			str = str.Replace('|', '%');    // '%' is not escaped
+			str = Regex.Escape(str);    // escapes only \*+?|{[()^$.# and whitespaces
+			str = str.Replace('%', '|');    // return back '|' delimeter
+			return str;
+		}
+
+		/// <summary>Identifies the namespace of the page.</summary>
+		/// <param name="pageTitle">Page title to identify the namespace of.</param>
+		/// <returns>Returns the integer key of the namespace.</returns>
+		public int GetNamespace(string pageTitle)
+		{
+			if (string.IsNullOrEmpty(pageTitle))
+				throw new ArgumentNullException("pageTitle");
+			int colonPos = pageTitle.IndexOf(':');
+			if (colonPos == -1 || colonPos == 0)
+				return 0;
+			string pageNS = '|' + pageTitle.Substring(0, colonPos) + '|';
+			foreach (KeyValuePair<int, string> ns in namespaces) {
+				if (ns.Value.Contains(pageNS))
+					return ns.Key;
+			}
+			return 0;
+		}
+
+		/// <summary>Removes the namespace prefix from page title.</summary>
+		/// <param name="pageTitle">Page title to remove prefix from.</param>
+		/// <param name="nsIndex">Integer key of namespace to remove. If this parameter is 0
+		/// any found namespace prefix is removed.</param>
+		/// <returns>Page title without prefix.</returns>
+		public string RemoveNsPrefix(string pageTitle, int nsIndex)
+		{
+			if (string.IsNullOrEmpty(pageTitle))
+				throw new ArgumentNullException("pageTitle");
+			if (!namespaces.Keys.Contains(nsIndex))
+				throw new ArgumentOutOfRangeException("nsIndex");
+			if (pageTitle[0] == ':')
+				pageTitle = pageTitle.TrimStart(new char[] { ':' });
+			int colonPos = pageTitle.IndexOf(':');
+			if (colonPos == -1)
+				return pageTitle;
+			string pagePrefixPattern = '|' + pageTitle.Substring(0, colonPos) + '|';
+			if (nsIndex != 0) {
+				if (namespaces[nsIndex].Contains(pagePrefixPattern))
+					return pageTitle.Substring(colonPos + 1);
+			}
+			else {
+				foreach (KeyValuePair<int, string> ns in namespaces) {
+					if (ns.Value.Contains(pagePrefixPattern))
+						return pageTitle.Substring(colonPos + 1);
+				}
+			}
+			return pageTitle;
+		}
+
+		/// <summary>Function changes default English namespace prefixes and local namespace aliases
+		/// to canonical local prefixes (e.g. for German wiki-sites it changes "Category:..."
+		/// to "Kategorie:...").</summary>
+		/// <param name="pageTitle">Page title to correct prefix in.</param>
+		/// <returns>Page title with corrected prefix.</returns>
+		public string CorrectNsPrefix(string pageTitle)
+		{
+			if (string.IsNullOrEmpty(pageTitle))
+				throw new ArgumentNullException("pageTitle");
+			if (pageTitle[0] == ':')
+				pageTitle = pageTitle.TrimStart(new char[] { ':' });
+			int ns = GetNamespace(pageTitle);
+			if (ns == 0)
+				return pageTitle;
+			return GetNsPrefix(ns) + RemoveNsPrefix(pageTitle, ns);
+		}
+
+		/// <summary>Shows names and integer keys of local and default namespaces and namespace
+		/// aliases.</summary>
+		public void ShowNamespaces()
+		{
+			foreach (KeyValuePair<int, string> ns in namespaces) {
+				Console.WriteLine(ns.Key.ToString() + '\t' + ns.Value.Replace("|", Bot.nl + '\t'));
+			}
+		}
+	}
